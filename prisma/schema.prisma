@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String     @id @default(uuid())
+  username          String     @unique
+  email             String     @unique
+  passwordHash      String
+  avatarUrl         String?
+  virtualBalanceUsd Float      @default(10000)
+  piePoints         Int        @default(0)
+  createdAt         DateTime   @default(now())
+
+  messagesSent     Message[]  @relation("SentMessages")
+  messagesReceived Message[]  @relation("ReceivedMessages")
+  posts            Post[]
+  trades           Trade[]
+  followers        Follower[] @relation("Following")
+  following        Follower[] @relation("Followers")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  chatRoomId String?
+  content    String
+  type       String   @default("text")
+  isRead     Boolean  @default(false)
+  timestamp  DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Post {
+  id         String   @id @default(uuid())
+  userId     String
+  mediaUrl   String?
+  caption    String?
+  likesCount Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Trade {
+  id               String   @id @default(uuid())
+  userId           String
+  assetSymbol      String
+  type             String
+  amount           Float
+  executionPrice   Float
+  appliedSlippage  Float    @default(0)
+  executionDelayMs Int      @default(0)
+  feesApplied      Float    @default(0)
+  timestamp        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Follower {
+  followerId  String
+  followingId String
+
+  follower  User @relation("Followers", fields: [followerId], references: [id])
+  following User @relation("Following", fields: [followingId], references: [id])
+
+  @@id([followerId, followingId])
+}
